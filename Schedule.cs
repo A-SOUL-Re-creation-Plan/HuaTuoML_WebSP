@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using CalendarBody;
+using System.Threading.Tasks;
 
 namespace HuaTuo.Service
 {
@@ -30,7 +31,10 @@ namespace HuaTuo.Service
         {
             using Image image = Image.Load(image_stream);
             if (image.Width != 3000 || image.Height != 2000)
+            {
                 image.Mutate(x => x.Resize(3000, 2000));
+                forward.Messages.Add($"警告：图片尺寸不符合标准（应为3000x2000，实际为{image.Width}x{image.Height}），仍将尝试分析");
+            }
             rawImage = new MemoryStream();
             image.SaveAsJpeg(rawImage);
             FromTask = forward;
@@ -79,7 +83,29 @@ namespace HuaTuo.Service
             // OCR识别
             rawImage.Seek(0, SeekOrigin.Begin);
             var ocr_tool_task = ocr.RequestAsync(rawImage.ToArray());
-            FromTask.Messages.Add("OCR已提交，开始运行模型...");
+            // 日程表判断
+            bool detected = false;
+            rawImage.Seek(0, SeekOrigin.Begin);
+            var image = Image.Load(rawImage);
+            // 计算位置
+            int posx = (int)(0.5 * image.Width);
+            int posy = (int)(0.08 * image.Height);
+            int width = (int)(0.267 * image.Width);
+            int height = (int)(0.085 * image.Height);
+
+            var ocr_tool = new OcrTools(await ocr_tool_task);
+            var rencs = ocr_tool.SearchRectangle(posx, posy, width, height);
+            foreach (var rectangle in rencs)
+            {
+                if (rectangle.DetectedText.Contains("本周日程表"))
+                {
+                    detected = true;
+                    break;
+                }
+            }
+            if (!detected) throw new Exception("未认定的日程表");
+            // 认定
+            FromTask.Messages.Add("日程表认定，开始运行模型...");
             // 复制一份流防止资源被释放了
             rawImage.Seek(0, SeekOrigin.Begin);
             Stream predict_stream = new MemoryStream();
@@ -96,7 +122,7 @@ namespace HuaTuo.Service
             var modelPredicted = BasicSchedule.ModelPredictedBox.CreateWithFilter(modelOutput, 0.94);
 
             rawImage.Seek(0, SeekOrigin.Begin);
-            var ocr_tool = new OcrTools(await ocr_tool_task);
+            // var ocr_tool = new OcrTools(await ocr_tool_task);
 
             // 用于反馈创建的结果
             ProcessedResult result = new ProcessedResult();
@@ -134,9 +160,9 @@ namespace HuaTuo.Service
             // 画图
             FromTask.Messages.Add("分析创建完成，绘图中...");
             DrawBoudingBox(rawImage, ref result);
-            FromTask.Messages.Add($"共识别：{result.SuccessedCreated}  成功创建：{result.TotalDetected}");
+            FromTask.Messages.Add($"共识别：{result.TotalDetected}  成功创建：{result.SuccessedCreated}");
             // 保存
-            string path = $"{Environment.CurrentDirectory}/cache/{FromTask.UUID}.jpg";
+            string path = $"{Environment.CurrentDirectory}\\cache\\{FromTask.UUID}.jpg";
             Image.Load(result.Image).SaveAsJpeg(path);
             FromTask.Output = path;
         }

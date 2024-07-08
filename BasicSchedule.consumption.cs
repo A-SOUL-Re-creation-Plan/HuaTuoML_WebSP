@@ -94,7 +94,7 @@ namespace MlModel
             }
         }
 
-        private static readonly string MLNetModelPath = Path.GetFullPath(".\\ML_Model\\BasicSchedule.mlnet");
+        private static readonly string MLNetModelPath = Path.GetFullPath(".\\BasicSchedule.mlnet");
 
         // 延迟初始化，第一次使用时再初始化
         public static readonly Lazy<PredictionEngine<ModelInput, ModelOutput>> PredictEngine = new Lazy<PredictionEngine<ModelInput, ModelOutput>>(() => CreatePredictEngine(), true);

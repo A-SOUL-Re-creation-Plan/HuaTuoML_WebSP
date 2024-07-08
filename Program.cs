@@ -1,6 +1,9 @@
 using System.Text.Json;
 using HuaTuo.Service;
 using HuaTuoMain.CloudServe;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using RestSharp;
 
 
 namespace HuaTuoML_WebSP
@@ -37,6 +40,19 @@ namespace HuaTuoML_WebSP
                 try
                 {
                     string path = httpContext.Request.Query["path"].ToString();
+                    // 识别是否为网页链接
+                    var image = new MemoryStream();
+                    if (Uri.IsWellFormedUriString(path, UriKind.Absolute))
+                    {
+                        var client = new RestClient();
+                        var req = new RestRequest(path);
+                        req.AddHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/63.0.3239.108");
+                        image = new MemoryStream(client.Get(req).RawBytes!);
+                    }
+                    else
+                    {
+                        image = new MemoryStream(File.ReadAllBytes(path));
+                    }
                     string calendar_id = httpContext.Request.Query["calendar"].ToString();
                     string user_token = httpContext.Request.Query["token"].ToString();
                     var token = new FeishuUserToken(user_token);
@@ -45,7 +61,6 @@ namespace HuaTuoML_WebSP
                     {
                         try
                         {
-                            var image = new MemoryStream(File.ReadAllBytes(path));
                             var schedule_process = new ScheduleProcess(image, ref task, new FeishuCLDService(calendar_id, token), feishu_cfg, ocr);
                             schedule_process.StartParsing().Wait();
                             task.Status = "success";
@@ -76,7 +91,9 @@ namespace HuaTuoML_WebSP
 
             app.MapGet("/status", (HttpContext httpContext) =>
             {
-                var task = TaskQueue[httpContext.Request.Query["uuid"].ToString()];
+                var uuid = httpContext.Request.Query["uuid"].ToString();
+                if (!TaskQueue.ContainsKey(uuid)) return Results.NotFound();
+                var task = TaskQueue[uuid];
                 if (task == null) return Results.NotFound();
                 return Results.Ok(new
                 {
@@ -85,6 +102,21 @@ namespace HuaTuoML_WebSP
                     messages = task.Messages,
                     output = task.Output
                 });
+            });
+
+            app.MapGet("/output", (HttpContext httpContext) =>
+            {
+                var uuid = httpContext.Request.Query["uuid"].ToString();
+                if (!TaskQueue.ContainsKey(uuid)) return Results.NotFound();
+                var task = TaskQueue[uuid];
+                try
+                {
+                    return Results.Ok(new FileContentResult(File.ReadAllBytes(task.Output), "image/jpeg"));
+                }
+                catch (Exception e)
+                {
+                    return Results.NotFound(new { msg = e.Message});
+                }
             });
 
             app.Run();
