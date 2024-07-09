@@ -95,13 +95,16 @@ namespace HuaTuoML_WebSP
                 if (!TaskQueue.ContainsKey(uuid)) return Results.NotFound();
                 var task = TaskQueue[uuid];
                 if (task == null) return Results.NotFound();
-                return Results.Ok(new
+                lock (task)
                 {
-                    uuid = task.UUID,
-                    status = task.Status,
-                    messages = task.Messages,
-                    output = task.Output
-                });
+                    return Results.Ok(new
+                    {
+                        uuid = task.UUID,
+                        status = task.Status,
+                        messages = task.Messages,
+                        output = task.Output
+                    });
+                }
             });
 
             app.MapGet("/output", (HttpContext httpContext) =>

@@ -148,6 +148,7 @@ namespace HuaTuo.Service
                 // 怀疑4人同一天直播的情况
                 if (nearby_events.Length > 3) hour = 1.0;
                 // 别超速了
+                FromTask.Messages.Add($"开始创建【{block.Label}】");
                 task_results.Add(await ParseIndividual(CLDS, block, ocr_tool, hour));
             }
             // 拼接信息
