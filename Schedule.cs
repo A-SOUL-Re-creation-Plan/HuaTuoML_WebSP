@@ -32,8 +32,8 @@ namespace HuaTuo.Service
             using Image image = Image.Load(image_stream);
             if (image.Width != 3000 || image.Height != 2000)
             {
-                image.Mutate(x => x.Resize(3000, 2000));
                 forward.Messages.Add($"警告：图片尺寸不符合标准（应为3000x2000，实际为{image.Width}x{image.Height}），仍将尝试分析");
+                image.Mutate(x => x.Resize(3000, 2000));
             }
             rawImage = new MemoryStream();
             image.SaveAsJpeg(rawImage);
