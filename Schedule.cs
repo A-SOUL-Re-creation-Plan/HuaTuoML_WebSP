@@ -145,10 +145,10 @@ namespace HuaTuo.Service
                 double hour = 3.0;
                 // 尝试一下周边的日程数量吧
                 BasicSchedule.ModelPredictedBox[] nearby_events = block.DetectionsRanging(modelPredicted);
-                // 怀疑4人同一天直播的情况
-                if (nearby_events.Length > 3) hour = 1.0;
+                // 怀疑3人同一天直播的情况
+                if (nearby_events.Length >= 3) hour = 1.0;
                 // 别超速了
-                FromTask.Messages.Add($"开始创建【{block.Label}】");
+                FromTask.Messages.Add($"开始创建【{block.Label}】[{block.Identify}]");
                 task_results.Add(await ParseIndividual(CLDS, block, ocr_tool, hour));
             }
             // 拼接信息
@@ -190,7 +190,7 @@ namespace HuaTuo.Service
             // 暂不处理橙色标签的直播
             if (block.Label == "Others")
             {
-                FromTask.Messages.Add("注意：日程表存在其他类型日程，已跳过处理");
+                FromTask.Messages.Add($"【{block.Label}】[{block.Identify}]为其他类型日程，已跳过处理");
                 return result;
             }
             // 分离日程表中的信息
@@ -223,7 +223,7 @@ namespace HuaTuo.Service
             }
             if (mark)
             {
-                FromTask.Messages.Add("警告：一个日程的时间无法被识别到，已跳过该日程");
+                FromTask.Messages.Add($"【{block.Label}】[{block.Identify}]的时间无法被识别到，已跳过该日程");
                 return result;
             }
             else
@@ -266,7 +266,7 @@ namespace HuaTuo.Service
             }
             if (mark)
             {
-                FromTask.Messages.Add("警告：一个日程的标签无法识别，该日程仍会被创建，请注意标签可能被拼接在标题内");
+                FromTask.Messages.Add($"【{block.Label}】[{block.Identify}]的标签无法识别，该日程仍会被创建，请注意标签可能被拼接在标题内");
                 // return result;
             }
             mark = true;
@@ -284,11 +284,11 @@ namespace HuaTuo.Service
                     {
                         // 团播 不做修改
                         // 团播：计画，糖贝琳
-                        // attendees.Add(new LarkID(FeishuIDs[5]));
-                        attendees.Add(new LarkID(FeishuIDs[1]));
-                        attendees.Add(new LarkID(FeishuIDs[2]));
-                        attendees.Add(new LarkID(FeishuIDs[3]));
-                        attendees.Add(new LarkID(FeishuIDs[4]));
+                        // attendees.Add(new LarkID(FeishuIDs[5])); 原所有成员
+                        attendees.Add(new LarkID(FeishuIDs[1])); // 贝
+                        attendees.Add(new LarkID(FeishuIDs[2])); // 糖
+                        attendees.Add(new LarkID(FeishuIDs[3])); // 奶
+                        // attendees.Add(new LarkID(FeishuIDs[4])); 计画，改变逻辑后抛弃
                         break;
                     }
                     if (parsed != 0x1 && parsed != 0x2 && parsed != 0x4 && parsed != 0x8)
@@ -303,13 +303,13 @@ namespace HuaTuo.Service
                         if ((parsed & 1) == 1) attendees.Add(new LarkID(FeishuIDs[i]));
                         parsed >>>= 1;
                     }
-                    attendees.Add(new LarkID(FeishuIDs[4]));
+                    // attendees.Add(new LarkID(FeishuIDs[4]));
                     break;
                 }
             }
             if (mark)
             {
-                FromTask.Messages.Add("警告：一个日程找不到主题，已跳过该日程");
+                FromTask.Messages.Add($"【{block.Label}】[{block.Identify}]找不到主题，已跳过该日程");
                 return result;
             }
             // 拼接标题
@@ -323,7 +323,7 @@ namespace HuaTuo.Service
             var events = await CLDS.GetEventList(check_start, check_end);
             if (events.Data.Items.Length > 0)
             {
-                FromTask.Messages.Add($"注意：{calendarEvent.Summary}存在冲突，已跳过该日程");
+                FromTask.Messages.Add($"【{block.Label}】[{block.Identify}]存在冲突，已跳过该日程");
                 return result;
             }
             await CreateIndividual(calendarEvent, CLDS, attendees.ToArray());
@@ -377,7 +377,7 @@ namespace HuaTuo.Service
             foreach (var event_result in result.ProcessedResults)
             {
                 var box = event_result.Box!;
-                var text = $"{box.Label} {box.Score:F2}";
+                var text = $"{box.Label}[{box.Identify}] {box.Score:F2}";
                 if (event_result.Success) color = Color.LightGreen;
                 else color = Color.OrangeRed;
                 TextOptions textOptions = new TextOptions(font)

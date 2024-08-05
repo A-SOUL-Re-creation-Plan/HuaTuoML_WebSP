@@ -1,7 +1,6 @@
 using System.Text.Json;
 using HuaTuo.Service;
 using HuaTuoMain.CloudServe;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RestSharp;
 

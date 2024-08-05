@@ -63,8 +63,9 @@ namespace MlModel
             public float YTop { get; set; }
             public float YBottom { get; set; }
             public string Label { get; set; }
+            public string Identify { get; set; }
 
-            private ModelPredictedBox(float xTop, float yTop, float xBottom, float yBottom, string label, float score)
+            private ModelPredictedBox(float xTop, float yTop, float xBottom, float yBottom, string label, float score, string identify)
             {
                 XTop = xTop;
                 XBottom = xBottom;
@@ -72,13 +73,14 @@ namespace MlModel
                 YBottom = yBottom;
                 Label = label;
                 Score = score;
+                Identify = identify;
             }
 
             public static ModelPredictedBox[] Create(ModelOutput modelOutput)
             {
                 var boxes =
                 modelOutput.PredictedBoundingBoxes!.Chunk(4)
-                    .Select((x, index) => new ModelPredictedBox(x[0], x[1], x[2], x[3], modelOutput.PredictedLabel![index], modelOutput.Score![index]))
+                    .Select((x, index) => new ModelPredictedBox(x[0], x[1], x[2], x[3], modelOutput.PredictedLabel![index], modelOutput.Score![index], index.ToString()))
                     .ToArray();
                 return boxes;
             }
@@ -87,7 +89,7 @@ namespace MlModel
             {
                 var boxes =
                 modelOutput.PredictedBoundingBoxes!.Chunk(4)
-                    .Select((x, index) => new ModelPredictedBox(x[0], x[1], x[2], x[3], modelOutput.PredictedLabel![index], modelOutput.Score![index]))
+                    .Select((x, index) => new ModelPredictedBox(x[0], x[1], x[2], x[3], modelOutput.PredictedLabel![index], modelOutput.Score![index], index.ToString()))
                     .Where(x => x.Score >= score)
                     .ToArray();
                 return boxes;
