@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.ML.TorchSharp" Version="0.21.0" />
     <PackageReference Include="RestSharp" Version="111.3.0" />
     <PackageReference Include="SciSharp.TensorFlow.Redist" Version="2.16.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
     <PackageReference Include="TencentCloudSDK.Ocr" Version="3.0.1041" />
     <PackageReference Include="TorchSharp-cpu" Version="0.99.5" />
